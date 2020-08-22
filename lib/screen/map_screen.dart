@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
-import 'package:rapigo/database/model/user_model.dart';
+import 'package:rapigo/database/model/user_position_model.dart';
 import 'package:rapigo/other/map_style.dart';
 
 class MapScreen extends StatefulWidget  {
@@ -56,7 +56,7 @@ class _MapScreen extends State<MapScreen> {
      * >> Show all user with property "visible" is true
      * @Todo Mostrar solo aquellos que se encuentren en la pantalla
      */
-    _streamSubscriptionQuerySnapshot = UserModel.UserCollection.snapshots().listen((QuerySnapshot snapshot) {
+    _streamSubscriptionQuerySnapshot = UserPositionModel.Collection.snapshots().listen((QuerySnapshot snapshot) {
       _userPositionList = snapshot.docs
           .where((QueryDocumentSnapshot query) => query.data()["visible"] == true)
           .map((QueryDocumentSnapshot queryDocumentSnapshot) => UserPosition(
@@ -77,7 +77,7 @@ class _MapScreen extends State<MapScreen> {
         /**
          * Update local position in Could FireStore
          */
-        UserModel.UserCollection.doc("eEWOUN3NJbFQ5hhImjUv").update({
+        UserPositionModel.Collection.doc("eEWOUN3NJbFQ5hhImjUv").update({
           "position": GeoPoint(_locationData.latitude, _locationData.longitude)
         });
       }
