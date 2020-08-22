@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "346677049267",
+    "firebase_url": "https://rapigo-delivery.firebaseio.com",
+    "project_id": "rapigo-delivery",
+    "storage_bucket": "rapigo-delivery.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:346677049267:android:602d43ff4acbc5ae3c3dc6",
+        "android_client_info": {
+          "package_name": "com.delivery.rapigo_delivery"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "346677049267-n3pdh9r4njuni6vl2i0st34cffu49idf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCvzyvZ7cekapjDfu9f3cCGUsVVODwdYvI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "346677049267-n3pdh9r4njuni6vl2i0st34cffu49idf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
