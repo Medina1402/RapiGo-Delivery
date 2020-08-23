@@ -2,10 +2,13 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
+import 'package:rapigo/database/model/pedidos_model.dart';
 import 'package:rapigo/database/model/user_position_model.dart';
 import 'package:rapigo/other/map_style.dart';
+import 'package:rapigo/services/file_manager_service.dart';
 
 class MapScreen extends StatefulWidget  {
   @override
@@ -13,11 +16,16 @@ class MapScreen extends StatefulWidget  {
 }
 
 class _MapScreen extends State<MapScreen> {
-  StreamSubscription<LocationData> _streamSubscriptionLocation;
-  StreamSubscription<QuerySnapshot> _streamSubscriptionQuerySnapshot;
+  FileManagerService _fileManagerService = FileManagerService();
+  StreamSubscription<LocationData> _streamSubscriptionCurrentLocation;
+  StreamSubscription<QuerySnapshot> _streamSubscriptionLocations;
+  StreamSubscription<QuerySnapshot> _streamSubscriptionPedidos;
+  List<Pedido> _pedidosList = List();
   List<UserPosition> _userPositionList = List();
   GoogleMapController _googleMapController;
   Location _location = Location();
+
+  // ===========================================================================
 
   @override
   void initState() {
@@ -27,12 +35,15 @@ class _MapScreen extends State<MapScreen> {
 
   @override
   void dispose() {
-    if (_streamSubscriptionLocation != null) _streamSubscriptionLocation.cancel();
-    if (_streamSubscriptionQuerySnapshot != null) _streamSubscriptionQuerySnapshot.cancel();
+    if (_streamSubscriptionCurrentLocation != null) _streamSubscriptionCurrentLocation.cancel();
+    if (_streamSubscriptionLocations != null) _streamSubscriptionLocations.cancel();
+    if (_streamSubscriptionPedidos != null) _streamSubscriptionPedidos.cancel();
     super.dispose();
   }
 
-  Future<void> _initLocation() async {
+  // ===========================================================================
+
+  _initLocation() async {
     /**
      * Service Location enabled
      */
@@ -56,7 +67,7 @@ class _MapScreen extends State<MapScreen> {
      * >> Show all user with property "visible" is true
      * @Todo Mostrar solo aquellos que se encuentren en la pantalla
      */
-    _streamSubscriptionQuerySnapshot = UserPositionModel.Collection.snapshots().listen((QuerySnapshot snapshot) {
+    _streamSubscriptionLocations = UserPositionModel.Collection.snapshots().listen((QuerySnapshot snapshot) {
       _userPositionList = snapshot.docs
           .where((QueryDocumentSnapshot query) => query.data()["visible"] == true)
           .map((QueryDocumentSnapshot queryDocumentSnapshot) => UserPosition(
@@ -66,16 +77,33 @@ class _MapScreen extends State<MapScreen> {
       setState(() {});
     });
 
+    /*
+     *
+     */
+    _streamSubscriptionPedidos = PedidosModel.Collection.snapshots().listen((QuerySnapshot snapshot) {
+      _pedidosList = snapshot.docs.map((QueryDocumentSnapshot queryDocumentSnapshot) => Pedido(
+        queryDocumentSnapshot.data()["id"],
+        queryDocumentSnapshot.data()["disponible"],
+        queryDocumentSnapshot.data()["entregado"],
+        queryDocumentSnapshot.data()["recogido"])
+      ).toList();
+      setState(() {});
+    });
+
     /**
      * Listen change user local position (this)
      */
-    _streamSubscriptionLocation = _location.onLocationChanged.listen((LocationData _locationData) {
+    final String _keyFromFileTemp = await _fileManagerService.readFile("temp.txt");
+    print(">> key: $_keyFromFileTemp");
+
+    _streamSubscriptionCurrentLocation = _location.onLocationChanged.listen((LocationData _locationData) {
       if (_googleMapController != null) {
         _googleMapController.setMapStyle(MyMapStyle);
         _googleMapController.animateCamera(CameraUpdate.newLatLng(LatLng(_locationData.latitude, _locationData.longitude)));
 
         /**
          * Update local position in Could FireStore
+         * @Todo leer el archivo temporal y extraer la key
          */
         UserPositionModel.Collection.doc("eEWOUN3NJbFQ5hhImjUv").update({
           "position": GeoPoint(_locationData.latitude, _locationData.longitude)
@@ -83,16 +111,20 @@ class _MapScreen extends State<MapScreen> {
       }
     });
 
+
+
   }
 
   // ===========================================================================
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       backgroundColor: Colors.black12,
       body: Stack(
         alignment: Alignment.bottomCenter,
+        overflow: Overflow.clip,
         children: [
           GoogleMap(
             onMapCreated: (controller) => _googleMapController = controller,
@@ -113,21 +145,128 @@ class _MapScreen extends State<MapScreen> {
               onTap: () => print(userPosition.id),
             )).toSet(),
           ),
-          RaisedButton(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18.0),
-              side: BorderSide(color: Colors.lightBlueAccent),
+          Container(
+            padding: EdgeInsets.fromLTRB(0, 10, 0, 0),
+            child: DraggableScrollableSheet(
+              initialChildSize: 0.075,
+              maxChildSize: 0.5,
+              minChildSize: 0.075,
+              builder: (context, _controller) {
+                return Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.only(
+                      topRight: Radius.circular(20.0),
+                      topLeft: Radius.circular(20.0),
+                    ),
+                    color: Colors.red,
+                  ),
+                  child: SingleChildScrollView(
+                    controller: _controller,
+                    child: Column(
+                      children: [
+                        Container(
+                          height: 50,
+                          width: double.infinity,
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Padding(padding: EdgeInsets.fromLTRB(15, 0, 15, 0), child: Icon(Icons.directions_bike, size: 25,),),
+                              Text("PEDIDOS", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),)
+                            ],
+                          ),
+                        ),
+                        Column(
+                          children: [
+                            Card(
+                              margin: EdgeInsets.fromLTRB(20, 30, 20, 30),
+                              child: Column(
+                                children: [
+                                  Text("Nombre del local"),
+                                  Text("Direccion"),
+                                  Text("Tiempo al local"),
+                                  Text("Tiempo total de entrega"),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                    children: [
+                                      MaterialButton(
+                                        color: Colors.green,
+                                        child: Text("Ver en mapa"),
+                                        onPressed: (){},
+                                      ),
+                                      MaterialButton(
+                                        color: Colors.blue,
+                                        child: Text("Postularme"),
+                                        onPressed: (){},
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Card(
+                              margin: EdgeInsets.fromLTRB(20, 30, 20, 30),
+                              child: Column(
+                                children: [
+                                  Text("Nombre del local"),
+                                  Text("Direccion"),
+                                  Text("Tiempo al local"),
+                                  Text("Tiempo total de entrega"),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                    children: [
+                                      MaterialButton(
+                                        color: Colors.green,
+                                        child: Text("Ver en mapa"),
+                                        onPressed: (){},
+                                      ),
+                                      MaterialButton(
+                                        color: Colors.blue,
+                                        child: Text("Postularme"),
+                                        onPressed: (){},
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Card(
+                              margin: EdgeInsets.fromLTRB(20, 30, 20, 30),
+                              child: Column(
+                                children: [
+                                  Text("Nombre del local"),
+                                  Text("Direccion"),
+                                  Text("Tiempo al local"),
+                                  Text("Tiempo total de entrega"),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                    children: [
+                                      MaterialButton(
+                                        color: Colors.green,
+                                        child: Text("Ver en mapa"),
+                                        onPressed: (){},
+                                      ),
+                                      MaterialButton(
+                                        color: Colors.blue,
+                                        child: Text("Postularme"),
+                                        onPressed: (){},
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            )
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
-            color: Colors.lightBlueAccent,
-            elevation: 0,
-            child: Icon(Icons.keyboard_arrow_up),
-            onPressed: (){
-              print("Press button stack");
-            },
           )
         ],
       ),
     );
   }
-
 }

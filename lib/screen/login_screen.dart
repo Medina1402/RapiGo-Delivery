@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:rapigo/database/model/user_model.dart';
+import 'package:rapigo/screen/loader_screen.dart';
 import 'package:rapigo/services/file_manager_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -13,6 +14,16 @@ class _LoginScreen extends State<LoginScreen> {
   TextEditingController _password = TextEditingController();
 
   // ===========================================================================
+  bool _loader = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fileManagerService.readFile("temp.txt").then((_content) => {
+      if(_content!=null && _content.length >= 20) _userFind()
+    });
+    setState(() => _loader = false);
+  }
 
   @override
   void dispose() {
@@ -28,6 +39,12 @@ class _LoginScreen extends State<LoginScreen> {
     print(_key);
   }
 
+  _userFind() {
+    _username.clear();
+    _password.clear();
+    Navigator.pushReplacementNamed(context, "/map");
+  }
+
   _notFound() async {
     print("El usuario no es valido");
   }
@@ -36,13 +53,11 @@ class _LoginScreen extends State<LoginScreen> {
     String _key = await UserModel.login(_username.text, _password.text);
     if(_key == null) return _notFound();
     await _fileManagerService.writeFile("temp.txt", _key);
-    _username.clear();
-    _password.clear();
-    Navigator.pushReplacementNamed(context, "/map");
+    _userFind();
   }
 
   // ===========================================================================
-  bool _showPwd = false;
+  bool _showPwd = true;
   // Toggle show password
   void showPwd() {
     setState(() {_showPwd = !_showPwd;});
@@ -51,7 +66,7 @@ class _LoginScreen extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return (_loader) ?LoaderScreen :Scaffold(
       floatingActionButton: MaterialButton(
         minWidth: double.minPositive,
         elevation: 0,
