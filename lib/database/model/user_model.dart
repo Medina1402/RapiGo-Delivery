@@ -1,6 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:rapigo/database/firebase_provider.dart';
 
+class User {
+  String phone;
+  String password;
+
+  User(this.phone, this.password);
+
+  get json {
+    return  {
+      phone: this.phone,
+      password: this.password,
+    };
+  }
+}
+
 class UserModel {
   // ignore: non_constant_identifier_names
   static final Collection = FirebaseProvider.Collection("repartidores");
@@ -25,5 +39,12 @@ class UserModel {
     var _user = await findOne(_phone);
     if(_user == null || _user["password"] != _password) return null;
     return _user["id"];
+  }
+
+
+  static create(User _user) async {
+    String _key = Collection.doc().id;
+    Collection.doc(_key).set(_user.json);
+    return _key;
   }
 }

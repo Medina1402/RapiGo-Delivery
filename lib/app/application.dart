@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:rapigo/app/router.dart';
 
+// ignore: must_be_immutable
 class Application extends StatelessWidget {
-  void afterBuild() {
+  String _routeDefault;
+  Application(this._routeDefault);
+
+  void afterBuild() async {
     SystemChrome.setSystemUIOverlayStyle(
         SystemUiOverlayStyle(statusBarColor: Colors.transparent));
   }
@@ -16,11 +20,9 @@ class Application extends StatelessWidget {
 
     return MaterialApp(
       title: "RapiGo Delivery",
-      theme: ThemeData(
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
       debugShowCheckedModeBanner: false,
       routes: Routes,
+      initialRoute: _routeDefault,
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -19,11 +20,11 @@ class _MapScreen extends State<MapScreen> {
   FileManagerService _fileManagerService = FileManagerService();
   StreamSubscription<LocationData> _streamSubscriptionCurrentLocation;
   StreamSubscription<QuerySnapshot> _streamSubscriptionLocations;
-  StreamSubscription<QuerySnapshot> _streamSubscriptionPedidos;
-  List<Pedido> _pedidosList = List();
   List<UserPosition> _userPositionList = List();
   GoogleMapController _googleMapController;
   Location _location = Location();
+
+  ScrollController _scrollController = ScrollController();
 
   // ===========================================================================
 
@@ -37,7 +38,6 @@ class _MapScreen extends State<MapScreen> {
   void dispose() {
     if (_streamSubscriptionCurrentLocation != null) _streamSubscriptionCurrentLocation.cancel();
     if (_streamSubscriptionLocations != null) _streamSubscriptionLocations.cancel();
-    if (_streamSubscriptionPedidos != null) _streamSubscriptionPedidos.cancel();
     super.dispose();
   }
 
@@ -77,24 +77,10 @@ class _MapScreen extends State<MapScreen> {
       setState(() {});
     });
 
-    /*
-     *
-     */
-    _streamSubscriptionPedidos = PedidosModel.Collection.snapshots().listen((QuerySnapshot snapshot) {
-      _pedidosList = snapshot.docs.map((QueryDocumentSnapshot queryDocumentSnapshot) => Pedido(
-        queryDocumentSnapshot.data()["id"],
-        queryDocumentSnapshot.data()["disponible"],
-        queryDocumentSnapshot.data()["entregado"],
-        queryDocumentSnapshot.data()["recogido"])
-      ).toList();
-      setState(() {});
-    });
-
     /**
      * Listen change user local position (this)
      */
     final String _keyFromFileTemp = await _fileManagerService.readFile("temp.txt");
-    print(">> key: $_keyFromFileTemp");
 
     _streamSubscriptionCurrentLocation = _location.onLocationChanged.listen((LocationData _locationData) {
       if (_googleMapController != null) {
@@ -105,7 +91,7 @@ class _MapScreen extends State<MapScreen> {
          * Update local position in Could FireStore
          * @Todo leer el archivo temporal y extraer la key
          */
-        UserPositionModel.Collection.doc("eEWOUN3NJbFQ5hhImjUv").update({
+        UserPositionModel.Collection.doc(_keyFromFileTemp).update({
           "position": GeoPoint(_locationData.latitude, _locationData.longitude)
         });
       }
@@ -119,12 +105,9 @@ class _MapScreen extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-      backgroundColor: Colors.black12,
+      backgroundColor: Colors.black,
       body: Stack(
-        alignment: Alignment.bottomCenter,
-        overflow: Overflow.clip,
         children: [
           GoogleMap(
             onMapCreated: (controller) => _googleMapController = controller,
@@ -144,6 +127,20 @@ class _MapScreen extends State<MapScreen> {
               ),
               onTap: () => print(userPosition.id),
             )).toSet(),
+          ),
+          Positioned(
+            top: 40,
+            right: 15,
+            child: FloatingActionButton(
+              backgroundColor: Colors.redAccent,
+              child: Icon(Icons.exit_to_app),
+              onPressed: () async {
+                final String _keyFromFileTemp = await _fileManagerService.readFile("temp.txt");
+                await _fileManagerService.removeFile("temp.txt");
+                UserPositionModel.disconnect(_keyFromFileTemp);
+                Navigator.pushReplacementNamed(context, "/");
+              },
+            ),
           ),
           Container(
             padding: EdgeInsets.fromLTRB(0, 10, 0, 0),
@@ -178,84 +175,58 @@ class _MapScreen extends State<MapScreen> {
                         ),
                         Column(
                           children: [
-                            Card(
-                              margin: EdgeInsets.fromLTRB(20, 30, 20, 30),
-                              child: Column(
-                                children: [
-                                  Text("Nombre del local"),
-                                  Text("Direccion"),
-                                  Text("Tiempo al local"),
-                                  Text("Tiempo total de entrega"),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                    children: [
-                                      MaterialButton(
-                                        color: Colors.green,
-                                        child: Text("Ver en mapa"),
-                                        onPressed: (){},
-                                      ),
-                                      MaterialButton(
-                                        color: Colors.blue,
-                                        child: Text("Postularme"),
-                                        onPressed: (){},
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                            StreamBuilder(
+                              stream: PedidosModel.Collection.snapshots(),
+                              builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                                if(!snapshot.hasData) return Text("Sin pedidos");
+                                return ListView.builder(
+                                  controller: _scrollController,
+                                  shrinkWrap: true,
+                                  itemCount: snapshot.data.docs.length,
+                                  itemBuilder: (BuildContext context, int index) {
+                                    final item = snapshot.data.docs[index].data();
+                                    return Card(
+                                      key: Key("${item["id"]}"),
+                                      margin: EdgeInsets.fromLTRB(30, 20, 30, 20),
+                                      child: Padding(
+                                        padding: EdgeInsets.fromLTRB(10, 10, 10, 0),
+                                        child:  Column(
+                                          children: [
+                                            Text("Local: ${item["id"]}"),
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                Text("disponible: ${item["disponible"]}"),
+                                                Text("recogido: ${item["recogido"]}"),
+                                                Text("entregado: ${item["entregado"]}"),
+                                              ],
+                                            ),
+                                            Text("Direccion: ${item["direccion"]}"),
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                Text("Tiempo aprox: 5min"),
+                                                MaterialButton(
+                                                  color: Colors.blueAccent,
+                                                  child: Text("Ver en mapa"),
+                                                  onPressed: (){},
+                                                ),
+                                              ],
+                                            ),
+                                            MaterialButton(
+                                              minWidth: double.infinity,
+                                              color: Colors.blue,
+                                              child: Text("Aceptar pedido"),
+                                              onPressed: (){},
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    );
+                                  },
+                                );
+                              },
                             ),
-                            Card(
-                              margin: EdgeInsets.fromLTRB(20, 30, 20, 30),
-                              child: Column(
-                                children: [
-                                  Text("Nombre del local"),
-                                  Text("Direccion"),
-                                  Text("Tiempo al local"),
-                                  Text("Tiempo total de entrega"),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                    children: [
-                                      MaterialButton(
-                                        color: Colors.green,
-                                        child: Text("Ver en mapa"),
-                                        onPressed: (){},
-                                      ),
-                                      MaterialButton(
-                                        color: Colors.blue,
-                                        child: Text("Postularme"),
-                                        onPressed: (){},
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Card(
-                              margin: EdgeInsets.fromLTRB(20, 30, 20, 30),
-                              child: Column(
-                                children: [
-                                  Text("Nombre del local"),
-                                  Text("Direccion"),
-                                  Text("Tiempo al local"),
-                                  Text("Tiempo total de entrega"),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                    children: [
-                                      MaterialButton(
-                                        color: Colors.green,
-                                        child: Text("Ver en mapa"),
-                                        onPressed: (){},
-                                      ),
-                                      MaterialButton(
-                                        color: Colors.blue,
-                                        child: Text("Postularme"),
-                                        onPressed: (){},
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            )
                           ],
                         )
                       ],
