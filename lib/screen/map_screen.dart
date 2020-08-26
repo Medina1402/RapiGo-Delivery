@@ -40,10 +40,8 @@ class _MapScreen extends State<MapScreen> {
 
   @override
   void dispose() {
-    if (_streamSubscriptionCurrentLocation != null)
-      _streamSubscriptionCurrentLocation.cancel();
-    if (_streamSubscriptionLocations != null)
-      _streamSubscriptionLocations.cancel();
+    if (_streamSubscriptionCurrentLocation != null) _streamSubscriptionCurrentLocation.cancel();
+    if (_streamSubscriptionLocations != null) _streamSubscriptionLocations.cancel();
     _googleMapController.dispose();
     super.dispose();
   }
@@ -127,8 +125,7 @@ class _MapScreen extends State<MapScreen> {
     PermissionStatus _permissionGranted = await _location.hasPermission();
     if (_permissionGranted == PermissionStatus.denied) {
       _permissionGranted = await _location.requestPermission();
-      if (_permissionGranted != PermissionStatus.granted)
-        return print("No permission");
+      if (_permissionGranted != PermissionStatus.granted) return print("No permission");
     }
 
     /**
@@ -151,18 +148,16 @@ class _MapScreen extends State<MapScreen> {
     /**
      * Listen change user local position (this)
      */
-    final String _keyFromFileTemp =
-        await _fileManagerService.readFile("temp.txt");
+    final String _keyFromFileTemp = await _fileManagerService.readFile("temp.txt");
 
-    _streamSubscriptionCurrentLocation =
-        _location.onLocationChanged.listen((LocationData _locationData) {
+    _streamSubscriptionCurrentLocation = _location.onLocationChanged.listen((LocationData _locationData) {
       if (_googleMapController != null) {
         _googleMapController.setMapStyle(MyMapStyle);
         _locData = _locationData;
 
         /**
-             * Update local position in Could FireStore
-             */
+         * Update local position in Could FireStore
+         */
         UserPositionModel.Collection.doc(_keyFromFileTemp).update({
           "position": GeoPoint(_locationData.latitude, _locationData.longitude)
         });
@@ -191,7 +186,8 @@ class _MapScreen extends State<MapScreen> {
             child: Icon(Icons.menu),
             elevation: 2,
             backgroundColor: Colors.blue,
-            onPressed: () => Scaffold.of(context).openDrawer()),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+        ),
       ),
       drawer: Drawer(
         child: Container(
