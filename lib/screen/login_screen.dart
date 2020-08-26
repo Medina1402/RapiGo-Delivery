@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:rapigo/database/model/user_model.dart';
 import 'package:rapigo/database/model/user_position_model.dart';
-import 'package:rapigo/screen/loader_screen.dart';
+import 'package:rapigo/other/colors_style.dart';
 import 'package:rapigo/services/file_manager_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -16,14 +16,10 @@ class _LoginScreen extends State<LoginScreen> {
   TextEditingController _password = TextEditingController();
 
   // ===========================================================================
-  bool _loader = true;
 
   @override
   void initState() {
     super.initState();
-    _fileManagerService.readFile("temp.txt").then((_content) =>
-        {if (_content != null && _content.length >= 20) _userFind()});
-    setState(() => _loader = false);
   }
 
   @override
@@ -35,6 +31,9 @@ class _LoginScreen extends State<LoginScreen> {
 
   // ===========================================================================
 
+  /*
+   *
+   */
   _help(BuildContext context) async {
     showDialog(
       context: context,
@@ -66,12 +65,18 @@ class _LoginScreen extends State<LoginScreen> {
     );
   }
 
+  /*
+   *
+   */
   _userFind() {
     _username.clear();
     _password.clear();
     Navigator.pushReplacementNamed(context, "/map");
   }
 
+  /*
+   *
+   */
   _notFound(BuildContext context) {
     showDialog(
       context: context,
@@ -84,7 +89,7 @@ class _LoginScreen extends State<LoginScreen> {
                 Icons.error_outline,
                 color: Colors.orange,
               ),
-              Text("  Debes llenar todos los datos")
+              Text("  Debes llenar todos los datos"),
             ],
           ),
           elevation: 24,
@@ -95,9 +100,12 @@ class _LoginScreen extends State<LoginScreen> {
     );
   }
 
+  /*
+   *
+   */
   _validateUser(BuildContext context) async {
     String _key = await UserModel.login(_username.text, _password.text);
-    if(_key != null) _userFind();
+    if (_key != null) _userFind();
     if (_username.text.length <= 0 || _password.text.length <= 0) {
       _notFound(context);
       return null;
@@ -114,108 +122,113 @@ class _LoginScreen extends State<LoginScreen> {
   }
 
   // ===========================================================================
+
   bool _showPwd = true;
   final double _padding = 20;
 
-  // Toggle show password
+  /*
+   * Toggle show password
+   */
   void showPwd() {
     setState(() {
       _showPwd = !_showPwd;
     });
   }
 
+  // ===========================================================================
+
   @override
   Widget build(BuildContext context) {
-    return (_loader)
-        ? LoaderScreen
-        : Stack(
-            children: [
+    return Stack(
+      children: [
 //              Image(
 //                image: AssetImage('assets/images/bg.jpg'),
 //                width: double.infinity,
 //                height: double.infinity,
 //                fit: BoxFit.cover,
 //              ),
-              Scaffold(
-                floatingActionButton: MaterialButton(
-                  minWidth: double.minPositive,
-                  elevation: 0,
-                  child: Icon(
-                    Icons.help_outline,
-                    color: Colors.black54,
+        Scaffold(
+          floatingActionButton: MaterialButton(
+            minWidth: double.minPositive,
+            elevation: 0,
+            child: Icon(
+              Icons.help_outline,
+              color: Colors.black54,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(100),
+            ),
+            onPressed: () => _help(context),
+          ),
+          backgroundColor: Colors.transparent,
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                colors: [Colores.Primary, Colores.Secondary],
+                radius: 0.5,
+              ),
+            ),
+            alignment: Alignment.center,
+            width: double.infinity,
+            height: double.infinity,
+            padding: EdgeInsets.all(30),
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  Image(
+                    image: AssetImage('assets/images/logo.jpg'),
+                    width: 200,
+                    height: 200,
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(100),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(_padding, 10, _padding, 10),
+                    child: TextField(
+                      enableInteractiveSelection: false,
+                      controller: _username,
+                      decoration: InputDecoration(
+                        labelText: "Username",
+                        suffixIcon: Icon(Icons.person_outline),
+                      ),
+                    ),
                   ),
-                  onPressed: () => _help(context),
-                ),
-                backgroundColor: Colors.transparent,
-                body: Container(
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                        colors: [Colors.lightBlueAccent, Colors.blue],
-                        radius: 0.5),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(_padding, 10, _padding, 10),
+                    child: TextField(
+                      enableInteractiveSelection: false,
+                      controller: _password,
+                      obscureText: _showPwd,
+                      decoration: InputDecoration(
+                        labelText: "Password",
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            (_showPwd) ? Icons.lock : Icons.lock_open,
+                          ),
+                          onPressed: showPwd,
+                        ),
+                      ),
+                    ),
                   ),
-                  alignment: Alignment.center,
-                  width: double.infinity,
-                  height: double.infinity,
-                  padding: EdgeInsets.all(30),
-                  child: SingleChildScrollView(
-                    child: Column(
+                  Padding(
+                    padding: EdgeInsets.all(_padding),
+                    child: MaterialButton(
+                      height: 50,
+                      elevation: 0,
+                      color: Colors.red,
+                      minWidth: double.infinity,
+                      onPressed: () => _validateUser(context),
+                      child: Text("Ingresar"),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      _padding,
+                      0,
+                      _padding,
+                      0,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Image(
-                          image: AssetImage('assets/images/logo.jpg'),
-                          width: 200,
-                          height: 200,
-                        ),
-                        Padding(
-                          padding: EdgeInsets.all(_padding),
-                          child: TextField(
-                            enableInteractiveSelection: false,
-                            controller: _username,
-                            decoration: InputDecoration(
-                              labelText: "Username",
-                              suffixIcon: Icon(Icons.person_outline),
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.all(_padding),
-                          child: TextField(
-                            enableInteractiveSelection: false,
-                            controller: _password,
-                            obscureText: _showPwd,
-                            decoration: InputDecoration(
-                                labelText: "Password",
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    (_showPwd) ? Icons.lock : Icons.lock_open,
-                                  ),
-                                  onPressed: showPwd,
-                                )),
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.all(_padding),
-                          child: MaterialButton(
-                            height: 50,
-                            elevation: 0,
-                            color: Colors.red,
-                            minWidth: double.infinity,
-                            onPressed: () => _validateUser(context),
-                            child: Text("Ingresar"),
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            _padding,
-                            0,
-                            _padding,
-                            0,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
 //                              MaterialButton(
 //                                child: Text("Registrarme"),
 //                                onPressed: () {},
@@ -224,15 +237,15 @@ class _LoginScreen extends State<LoginScreen> {
 //                                child: Text("Olvide mi contraseña"),
 //                                onPressed: () {},
 //                              ),
-                            ],
-                          ),
-                        ),
                       ],
                     ),
                   ),
-                ),
-              )
-            ],
-          );
+                ],
+              ),
+            ),
+          ),
+        )
+      ],
+    );
   }
 }

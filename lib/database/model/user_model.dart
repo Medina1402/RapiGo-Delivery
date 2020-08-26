@@ -9,8 +9,8 @@ class User {
 
   get json {
     return  {
-      phone: this.phone,
-      password: this.password,
+      "phone": this.phone,
+      "password": this.password,
     };
   }
 }

@@ -8,10 +8,11 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'package:rapigo/database/model/pedidos_model.dart';
 import 'package:rapigo/database/model/user_position_model.dart';
+import 'package:rapigo/other/colors_style.dart';
 import 'package:rapigo/other/map_style.dart';
 import 'package:rapigo/services/file_manager_service.dart';
 
-class MapScreen extends StatefulWidget  {
+class MapScreen extends StatefulWidget {
   @override
   State<StatefulWidget> createState() => _MapScreen();
 }
@@ -25,8 +26,11 @@ class _MapScreen extends State<MapScreen> {
   Location _location = Location();
 
   ScrollController _scrollController = ScrollController();
+  LocationData _locData;
 
   // ===========================================================================
+  bool _locationVisible = true;
+  bool _showAllPerson = true;
 
   @override
   void initState() {
@@ -36,13 +40,77 @@ class _MapScreen extends State<MapScreen> {
 
   @override
   void dispose() {
-    if (_streamSubscriptionCurrentLocation != null) _streamSubscriptionCurrentLocation.cancel();
-    if (_streamSubscriptionLocations != null) _streamSubscriptionLocations.cancel();
+    if (_streamSubscriptionCurrentLocation != null)
+      _streamSubscriptionCurrentLocation.cancel();
+    if (_streamSubscriptionLocations != null)
+      _streamSubscriptionLocations.cancel();
+    _googleMapController.dispose();
     super.dispose();
   }
 
   // ===========================================================================
 
+  _logout(BuildContext context) async {
+    Navigator.of(context).pop();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        elevation: 24,
+        backgroundColor: Colors.white,
+        content: Text("¿Deseas cerrar sesion?"),
+        title: Row(
+          children: [
+            Icon(
+              Icons.warning,
+              color: Colors.red,
+            ),
+            Text("  Cerrar sesion"),
+          ],
+        ),
+        actions: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(15, 0, 15, 0),
+                child: MaterialButton(
+                  color: Colors.red,
+                  child: Text("Aceptar"),
+                  onPressed: () async {
+                    final String _keyFromFileTemp =
+                        await _fileManagerService.readFile("temp.txt");
+                    UserPositionModel.disconnect(_keyFromFileTemp);
+                    await _fileManagerService.removeFile("temp.txt");
+                    Navigator.pushReplacementNamed(context, "/");
+                  },
+                ),
+              ),
+              MaterialButton(
+                color: Colors.green,
+                child: Text("Cancelar"),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+      barrierDismissible: true,
+    );
+  }
+
+  /*
+   *
+   */
+  _locationCenter() async {
+    _googleMapController.animateCamera(
+        CameraUpdate.newLatLng(LatLng(_locData.latitude, _locData.longitude)));
+  }
+
+  /*
+   *
+   */
   _initLocation() async {
     /**
      * Service Location enabled
@@ -59,7 +127,8 @@ class _MapScreen extends State<MapScreen> {
     PermissionStatus _permissionGranted = await _location.hasPermission();
     if (_permissionGranted == PermissionStatus.denied) {
       _permissionGranted = await _location.requestPermission();
-      if (_permissionGranted != PermissionStatus.granted) return print("No permission");
+      if (_permissionGranted != PermissionStatus.granted)
+        return print("No permission");
     }
 
     /**
@@ -67,46 +136,240 @@ class _MapScreen extends State<MapScreen> {
      * >> Show all user with property "visible" is true
      * @Todo Mostrar solo aquellos que se encuentren en la pantalla
      */
-    _streamSubscriptionLocations = UserPositionModel.Collection.snapshots().listen((QuerySnapshot snapshot) {
+    _streamSubscriptionLocations = UserPositionModel.Collection.snapshots()
+        .listen((QuerySnapshot snapshot) {
       _userPositionList = snapshot.docs
-          .where((QueryDocumentSnapshot query) => query.data()["visible"] == true)
+          .where(
+              (QueryDocumentSnapshot query) => query.data()["visible"] == true)
           .map((QueryDocumentSnapshot queryDocumentSnapshot) => UserPosition(
-            queryDocumentSnapshot.data()["id"],
-            queryDocumentSnapshot.data()["position"])
-      ).toList();
+              queryDocumentSnapshot.data()["id"],
+              queryDocumentSnapshot.data()["position"]))
+          .toList();
       setState(() {});
     });
 
     /**
      * Listen change user local position (this)
      */
-    final String _keyFromFileTemp = await _fileManagerService.readFile("temp.txt");
+    final String _keyFromFileTemp =
+        await _fileManagerService.readFile("temp.txt");
 
-    _streamSubscriptionCurrentLocation = _location.onLocationChanged.listen((LocationData _locationData) {
+    _streamSubscriptionCurrentLocation =
+        _location.onLocationChanged.listen((LocationData _locationData) {
       if (_googleMapController != null) {
         _googleMapController.setMapStyle(MyMapStyle);
-        _googleMapController.animateCamera(CameraUpdate.newLatLng(LatLng(_locationData.latitude, _locationData.longitude)));
+        _locData = _locationData;
 
         /**
-         * Update local position in Could FireStore
-         * @Todo leer el archivo temporal y extraer la key
-         */
+             * Update local position in Could FireStore
+             */
         UserPositionModel.Collection.doc(_keyFromFileTemp).update({
           "position": GeoPoint(_locationData.latitude, _locationData.longitude)
         });
       }
     });
-
-
-
   }
 
   // ===========================================================================
 
   @override
   Widget build(BuildContext context) {
+    /*
+     * First animation current location
+     */
+    _locationCenter();
+    setState(() {});
+
+    /**
+     *
+     */
     return Scaffold(
       backgroundColor: Colors.black,
+      floatingActionButtonLocation: FloatingActionButtonLocation.miniStartTop,
+      floatingActionButton: Builder(
+        builder: (context) => FloatingActionButton(
+            child: Icon(Icons.menu),
+            elevation: 2,
+            backgroundColor: Colors.blue,
+            onPressed: () => Scaffold.of(context).openDrawer()),
+      ),
+      drawer: Drawer(
+        child: Container(
+          color: Colores.Primary,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                children: [
+                  DrawerHeader(
+                    decoration: BoxDecoration(color: Colors.blue),
+                    child: Center(
+                      child: Text("Header"),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      0,
+                      5,
+                      0,
+                      10,
+                    ),
+                    child: MaterialButton(
+                      elevation: 0,
+                      minWidth: double.infinity,
+                      height: 50,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.person,
+                            color: Colors.white,
+                          ),
+                          Text(
+                            "   Editar datos de perfil",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ],
+                      ),
+                      onPressed: () {},
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      0,
+                      5,
+                      0,
+                      10,
+                    ),
+                    child: MaterialButton(
+                      elevation: 0,
+                      minWidth: double.infinity,
+                      height: 50,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.data_usage,
+                            color: Colors.white,
+                          ),
+                          Text(
+                            "   Datos de entrega",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ],
+                      ),
+                      onPressed: () {},
+                    ),
+                  ),
+                  Divider(
+                    color: Colors.black,
+                  ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(0, 5, 0, 10),
+                    child: MaterialButton(
+                      elevation: 0,
+                      minWidth: double.infinity,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.my_location,
+                                color: Colors.white,
+                              ),
+                              Text(
+                                "   Locacion visible",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Checkbox(
+                              value: _locationVisible,
+                              onChanged: (bool value) {
+                                setState(() {
+                                  _locationVisible = !_locationVisible;
+                                });
+                              })
+                        ],
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _locationVisible = !_locationVisible;
+                        });
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(0, 5, 0, 10),
+                    child: MaterialButton(
+                      elevation: 0,
+                      minWidth: double.infinity,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.directions_bike,
+                                color: Colors.white,
+                              ),
+                              Text(
+                                "   Repartidores visibles",
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 18),
+                              ),
+                            ],
+                          ),
+                          Checkbox(
+                              value: _showAllPerson,
+                              onChanged: (bool value) {
+                                setState(() {
+                                  _showAllPerson = !_showAllPerson;
+                                });
+                              }),
+                        ],
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _showAllPerson = !_showAllPerson;
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              MaterialButton(
+                elevation: 0,
+                minWidth: double.infinity,
+                height: 55,
+                color: Colors.blue,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.exit_to_app,
+                      color: Colors.white,
+                    ),
+                    Text(
+                      "   Cerrar sesion",
+                      style: TextStyle(color: Colors.white, fontSize: 18),
+                    ),
+                  ],
+                ),
+                onPressed: () => _logout(context),
+              ),
+            ],
+          ),
+        ),
+      ),
       body: Stack(
         children: [
           GoogleMap(
@@ -119,27 +382,23 @@ class _MapScreen extends State<MapScreen> {
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
             compassEnabled: false,
-            markers: _userPositionList.map((UserPosition userPosition) => Marker(
-              markerId: MarkerId(userPosition.id),
-              position: LatLng(
-                  userPosition.position.latitude,
-                  userPosition.position.longitude
-              ),
-              onTap: () => print(userPosition.id),
-            )).toSet(),
+            markers: _userPositionList
+                .map((UserPosition userPosition) => Marker(
+                      markerId: MarkerId(userPosition.id),
+                      position: LatLng(userPosition.position.latitude,
+                          userPosition.position.longitude),
+                      onTap: () => print(userPosition.id),
+                    ))
+                .toSet(),
           ),
           Positioned(
-            top: 40,
+            bottom: 80,
             right: 15,
             child: FloatingActionButton(
-              backgroundColor: Colors.redAccent,
-              child: Icon(Icons.exit_to_app),
-              onPressed: () async {
-                final String _keyFromFileTemp = await _fileManagerService.readFile("temp.txt");
-                await _fileManagerService.removeFile("temp.txt");
-                UserPositionModel.disconnect(_keyFromFileTemp);
-                Navigator.pushReplacementNamed(context, "/");
-              },
+              elevation: 0,
+              backgroundColor: Colores.Primary,
+              child: Icon(Icons.my_location),
+              onPressed: _locationCenter,
             ),
           ),
           Container(
@@ -150,26 +409,35 @@ class _MapScreen extends State<MapScreen> {
               minChildSize: 0.075,
               builder: (context, _controller) {
                 return Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.only(
-                      topRight: Radius.circular(20.0),
-                      topLeft: Radius.circular(20.0),
-                    ),
-                    color: Colors.red,
-                  ),
+                  color: Colors.blue,
                   child: SingleChildScrollView(
                     controller: _controller,
                     child: Column(
                       children: [
                         Container(
-                          height: 50,
+                          height: 60,
                           width: double.infinity,
                           alignment: Alignment.center,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Padding(padding: EdgeInsets.fromLTRB(15, 0, 15, 0), child: Icon(Icons.directions_bike, size: 25,),),
-                              Text("PEDIDOS", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),)
+                              Padding(
+                                padding: EdgeInsets.fromLTRB(15, 0, 15, 0),
+                                child: Icon(
+                                  Icons.directions_bike,
+                                  size: 25,
+                                  color: Colores.Primary,
+                                ),
+                              ),
+                              Text(
+                                "PEDIDOS",
+                                style: TextStyle(
+                                  letterSpacing: 5,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colores.Primary,
+                                ),
+                              )
                             ],
                           ),
                         ),
@@ -177,52 +445,65 @@ class _MapScreen extends State<MapScreen> {
                           children: [
                             StreamBuilder(
                               stream: PedidosModel.Collection.snapshots(),
-                              builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                                if(!snapshot.hasData) return Text("Sin pedidos");
+                              builder: (BuildContext context,
+                                  AsyncSnapshot<QuerySnapshot> snapshot) {
+                                if (!snapshot.hasData)
+                                  return Text("Sin pedidos");
                                 return ListView.builder(
                                   controller: _scrollController,
                                   shrinkWrap: true,
                                   itemCount: snapshot.data.docs.length,
-                                  itemBuilder: (BuildContext context, int index) {
-                                    final item = snapshot.data.docs[index].data();
+                                  itemBuilder:
+                                      (BuildContext context, int index) {
+                                    final item =
+                                        snapshot.data.docs[index].data();
                                     return Card(
-                                      key: Key("${item["id"]}"),
-                                      margin: EdgeInsets.fromLTRB(30, 20, 30, 20),
-                                      child: Padding(
-                                        padding: EdgeInsets.fromLTRB(10, 10, 10, 0),
-                                        child:  Column(
-                                          children: [
-                                            Text("Local: ${item["id"]}"),
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                Text("disponible: ${item["disponible"]}"),
-                                                Text("recogido: ${item["recogido"]}"),
-                                                Text("entregado: ${item["entregado"]}"),
-                                              ],
-                                            ),
-                                            Text("Direccion: ${item["direccion"]}"),
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                Text("Tiempo aprox: 5min"),
-                                                MaterialButton(
-                                                  color: Colors.blueAccent,
-                                                  child: Text("Ver en mapa"),
-                                                  onPressed: (){},
-                                                ),
-                                              ],
-                                            ),
-                                            MaterialButton(
-                                              minWidth: double.infinity,
-                                              color: Colors.blue,
-                                              child: Text("Aceptar pedido"),
-                                              onPressed: (){},
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    );
+                                        key: Key("${item["id"]}"),
+                                        margin:
+                                            EdgeInsets.fromLTRB(30, 20, 30, 20),
+                                        child: Padding(
+                                          padding: EdgeInsets.fromLTRB(
+                                              10, 10, 10, 0),
+                                          child: Column(
+                                            children: [
+                                              Text("Local: ${item["id"]}"),
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Text(
+                                                      "disponible: ${item["disponible"]}"),
+                                                  Text(
+                                                      "recogido: ${item["recogido"]}"),
+                                                  Text(
+                                                      "entregado: ${item["entregado"]}"),
+                                                ],
+                                              ),
+                                              Text(
+                                                  "Direccion: ${item["direccion"]}"),
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Text("Tiempo aprox: 5min"),
+                                                  MaterialButton(
+                                                    color: Colors.blue,
+                                                    child: Text("Ver en mapa"),
+                                                    onPressed: () {},
+                                                  ),
+                                                ],
+                                              ),
+                                              MaterialButton(
+                                                minWidth: double.infinity,
+                                                color: Colors.blue,
+                                                child: Text("Aceptar pedido"),
+                                                onPressed: () {},
+                                              ),
+                                            ],
+                                          ),
+                                        ));
                                   },
                                 );
                               },
@@ -235,7 +516,7 @@ class _MapScreen extends State<MapScreen> {
                 );
               },
             ),
-          )
+          ),
         ],
       ),
     );
