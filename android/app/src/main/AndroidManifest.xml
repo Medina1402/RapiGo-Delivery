@@ -11,6 +11,7 @@
     <application
         android:name="io.flutter.app.FlutterApplication"
         android:label="RapiGo"
+        android:screenOrientation="portrait"
         android:icon="@mipmap/ic_launcher">
 
         <!--  Google Maps API -->

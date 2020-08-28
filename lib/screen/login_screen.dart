@@ -1,9 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:rapigo/database/model/user_model.dart';
-import 'package:rapigo/database/model/user_position_model.dart';
-import 'package:rapigo/other/colors_style.dart';
-import 'package:rapigo/services/file_manager_service.dart';
+import 'package:rapigo/database/sqflite_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -11,7 +8,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreen extends State<LoginScreen> {
-  FileManagerService _fileManagerService = FileManagerService();
   TextEditingController _username = TextEditingController();
   TextEditingController _password = TextEditingController();
 
@@ -68,7 +64,10 @@ class _LoginScreen extends State<LoginScreen> {
   /*
    *
    */
-  _userFind() {
+  _userFind(String key) async {
+    await SqfliteProvider.delete(key);
+    await SqfliteProvider.insert(UserRapigoDB(key, _username.text, 0, 0));
+
     _username.clear();
     _password.clear();
     Navigator.pushReplacementNamed(context, "/map");
@@ -77,7 +76,7 @@ class _LoginScreen extends State<LoginScreen> {
   /*
    *
    */
-  _notFound(BuildContext context) {
+  _notFound(BuildContext context, String message) {
     showDialog(
       context: context,
       builder: (context) {
@@ -89,7 +88,7 @@ class _LoginScreen extends State<LoginScreen> {
                 Icons.error_outline,
                 color: Colors.orange,
               ),
-              Text("  Debes llenar todos los datos"),
+              Text(message),
             ],
           ),
           elevation: 24,
@@ -104,21 +103,18 @@ class _LoginScreen extends State<LoginScreen> {
    *
    */
   _validateUser(BuildContext context) async {
-    String _key = await UserModel.login(_username.text, _password.text);
-    if (_key != null) _userFind();
     if (_username.text.length <= 0 || _password.text.length <= 0) {
-      _notFound(context);
+      _notFound(context, "  Debes llenar todos los datos");
       return null;
     }
 
-    final User _user = User(_username.text, _password.text);
-    _key = await UserModel.create(_user);
-    await _fileManagerService.writeFile("temp.txt", _key);
+    String _key = await UserModel.login(_username.text, _password.text);
+    if (_key != null) {
+      await _userFind(_key);
+      return null;
+    }
 
-    final UserPosition _userModel = UserPosition(_key, GeoPoint(0, 0));
-    await UserPositionModel.create(_userModel);
-
-    _userFind();
+    _notFound(context, "  Usuario no encontrado");
   }
 
   // ===========================================================================
@@ -164,8 +160,8 @@ class _LoginScreen extends State<LoginScreen> {
           body: Container(
             decoration: BoxDecoration(
               gradient: RadialGradient(
-                colors: [Colores.Primary, Colores.Secondary],
-                radius: 0.5,
+                colors: [Colors.blueAccent, Colors.blue],
+                radius: 0.75,
               ),
             ),
             alignment: Alignment.center,
@@ -186,6 +182,7 @@ class _LoginScreen extends State<LoginScreen> {
                       enableInteractiveSelection: false,
                       controller: _username,
                       decoration: InputDecoration(
+                        labelStyle: TextStyle(color: Colors.black),
                         labelText: "Username",
                         suffixIcon: Icon(Icons.person_outline),
                       ),
@@ -199,6 +196,7 @@ class _LoginScreen extends State<LoginScreen> {
                       obscureText: _showPwd,
                       decoration: InputDecoration(
                         labelText: "Password",
+                        labelStyle: TextStyle(color: Colors.black),
                         suffixIcon: IconButton(
                           icon: Icon(
                             (_showPwd) ? Icons.lock : Icons.lock_open,
@@ -216,7 +214,7 @@ class _LoginScreen extends State<LoginScreen> {
                       color: Colors.red,
                       minWidth: double.infinity,
                       onPressed: () => _validateUser(context),
-                      child: Text("Ingresar"),
+                      child: Text("Ingresar", style: TextStyle(fontSize: 20),),
                     ),
                   ),
                   Padding(

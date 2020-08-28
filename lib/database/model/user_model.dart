@@ -37,6 +37,7 @@ class UserModel {
   static Future<String> login(String _phone, String _password) async {
     if(_phone == null || _phone.length <= 0) return null;
     var _user = await findOne(_phone);
+    print(_user);
     if(_user == null || _user["password"] != _password) return null;
     return _user["id"];
   }

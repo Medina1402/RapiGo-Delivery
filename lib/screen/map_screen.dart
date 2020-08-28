@@ -1,16 +1,15 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'package:rapigo/database/model/pedidos_model.dart';
 import 'package:rapigo/database/model/user_position_model.dart';
+import 'package:rapigo/database/sqflite_provider.dart';
 import 'package:rapigo/other/colors_style.dart';
 import 'package:rapigo/other/map_style.dart';
-import 'package:rapigo/services/file_manager_service.dart';
 
 class MapScreen extends StatefulWidget {
   @override
@@ -18,7 +17,6 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreen extends State<MapScreen> {
-  FileManagerService _fileManagerService = FileManagerService();
   StreamSubscription<LocationData> _streamSubscriptionCurrentLocation;
   StreamSubscription<QuerySnapshot> _streamSubscriptionLocations;
   List<UserPosition> _userPositionList = List();
@@ -27,6 +25,7 @@ class _MapScreen extends State<MapScreen> {
 
   ScrollController _scrollController = ScrollController();
   LocationData _locData;
+  GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // ===========================================================================
   bool _locationVisible = true;
@@ -75,10 +74,12 @@ class _MapScreen extends State<MapScreen> {
                   color: Colors.red,
                   child: Text("Aceptar"),
                   onPressed: () async {
-                    final String _keyFromFileTemp =
-                        await _fileManagerService.readFile("temp.txt");
+                    _streamSubscriptionCurrentLocation.pause();
+                    _streamSubscriptionLocations.pause();
+
+                    final String _keyFromFileTemp = await SqfliteProvider.data.then((value) => value.id);
                     UserPositionModel.disconnect(_keyFromFileTemp);
-                    await _fileManagerService.removeFile("temp.txt");
+                    await SqfliteProvider.delete(_keyFromFileTemp);
                     Navigator.pushReplacementNamed(context, "/");
                   },
                 ),
@@ -103,7 +104,10 @@ class _MapScreen extends State<MapScreen> {
    */
   _locationCenter() async {
     _googleMapController.animateCamera(
-        CameraUpdate.newLatLng(LatLng(_locData.latitude, _locData.longitude)));
+      CameraUpdate.newLatLng(
+        LatLng(_locData.latitude, _locData.longitude),
+      ),
+    );
   }
 
   /*
@@ -148,7 +152,10 @@ class _MapScreen extends State<MapScreen> {
     /**
      * Listen change user local position (this)
      */
-    final String _keyFromFileTemp = await _fileManagerService.readFile("temp.txt");
+    final _keyFromFileTemp = await SqfliteProvider.data;
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+    print(_keyFromFileTemp.toString());
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 
     _streamSubscriptionCurrentLocation = _location.onLocationChanged.listen((LocationData _locationData) {
       if (_googleMapController != null) {
@@ -158,7 +165,7 @@ class _MapScreen extends State<MapScreen> {
         /**
          * Update local position in Could FireStore
          */
-        UserPositionModel.Collection.doc(_keyFromFileTemp).update({
+        UserPositionModel.Collection.doc(_keyFromFileTemp.id).update({
           "position": GeoPoint(_locationData.latitude, _locationData.longitude)
         });
       }
@@ -169,12 +176,8 @@ class _MapScreen extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    /*
-     * First animation current location
-     */
     _locationCenter();
     setState(() {});
-
     /**
      *
      */
@@ -182,11 +185,13 @@ class _MapScreen extends State<MapScreen> {
       backgroundColor: Colors.black,
       floatingActionButtonLocation: FloatingActionButtonLocation.miniStartTop,
       floatingActionButton: Builder(
-        builder: (context) => FloatingActionButton(
-            child: Icon(Icons.menu),
-            elevation: 2,
-            backgroundColor: Colors.blue,
-            onPressed: () => Scaffold.of(context).openDrawer(),
+        key: _scaffoldKey,
+        builder: (ctx) => FloatingActionButton(
+          heroTag: "btnMenu",
+          child: Icon(Icons.menu),
+          elevation: 2,
+          backgroundColor: Colors.blue,
+          onPressed: () => Scaffold.of(ctx).openDrawer(),
         ),
       ),
       drawer: Drawer(
@@ -246,11 +251,11 @@ class _MapScreen extends State<MapScreen> {
                       child: Row(
                         children: [
                           Icon(
-                            Icons.data_usage,
+                            Icons.history,
                             color: Colors.white,
                           ),
                           Text(
-                            "   Datos de entrega",
+                            "   Historial de entrega",
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -289,7 +294,7 @@ class _MapScreen extends State<MapScreen> {
                           ),
                           Checkbox(
                               value: _locationVisible,
-                              onChanged: (bool value) {
+                              onChanged: (bool value) async {
                                 setState(() {
                                   _locationVisible = !_locationVisible;
                                 });
@@ -391,6 +396,7 @@ class _MapScreen extends State<MapScreen> {
             bottom: 80,
             right: 15,
             child: FloatingActionButton(
+              heroTag: "centerLocation",
               elevation: 0,
               backgroundColor: Colores.Primary,
               child: Icon(Icons.my_location),

@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:rapigo/app/router.dart';
@@ -8,6 +9,7 @@ class Application extends StatelessWidget {
   Application(this._routeDefault);
 
   void afterBuild() async {
+    await Firebase.initializeApp();
     SystemChrome.setSystemUIOverlayStyle(
         SystemUiOverlayStyle(statusBarColor: Colors.transparent));
   }
