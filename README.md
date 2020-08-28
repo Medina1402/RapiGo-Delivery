@@ -1,9 +1,5 @@
 # :dash: RapiGo Delivery
 
-Capturas de pantalla
+Entrega de pedidos con visualización de repartidores y pedidos en tiempo real.
 
-![Image 1](screenshots/Screenshot_1598595088.png)
-
-![Image 1](screenshots/Screenshot_1598595093.png)
-
-![Image 1](screenshots/Screenshot_1598595106.png)
+![Image 1](screenshots/ui-basic.png)
