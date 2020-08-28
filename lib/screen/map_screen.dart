@@ -39,8 +39,10 @@ class _MapScreen extends State<MapScreen> {
 
   @override
   void dispose() {
-    if (_streamSubscriptionCurrentLocation != null) _streamSubscriptionCurrentLocation.cancel();
-    if (_streamSubscriptionLocations != null) _streamSubscriptionLocations.cancel();
+    if (_streamSubscriptionCurrentLocation != null)
+      _streamSubscriptionCurrentLocation.cancel();
+    if (_streamSubscriptionLocations != null)
+      _streamSubscriptionLocations.cancel();
     _googleMapController.dispose();
     super.dispose();
   }
@@ -77,7 +79,8 @@ class _MapScreen extends State<MapScreen> {
                     _streamSubscriptionCurrentLocation.pause();
                     _streamSubscriptionLocations.pause();
 
-                    final String _keyFromFileTemp = await SqfliteProvider.data.then((value) => value.id);
+                    final String _keyFromFileTemp =
+                        await SqfliteProvider.data.then((value) => value.id);
                     UserPositionModel.disconnect(_keyFromFileTemp);
                     await SqfliteProvider.delete(_keyFromFileTemp);
                     Navigator.pushReplacementNamed(context, "/");
@@ -108,6 +111,7 @@ class _MapScreen extends State<MapScreen> {
         LatLng(_locData.latitude, _locData.longitude),
       ),
     );
+    setState(() {});
   }
 
   /*
@@ -129,7 +133,8 @@ class _MapScreen extends State<MapScreen> {
     PermissionStatus _permissionGranted = await _location.hasPermission();
     if (_permissionGranted == PermissionStatus.denied) {
       _permissionGranted = await _location.requestPermission();
-      if (_permissionGranted != PermissionStatus.granted) return print("No permission");
+      if (_permissionGranted != PermissionStatus.granted)
+        return print("No permission");
     }
 
     /**
@@ -153,11 +158,9 @@ class _MapScreen extends State<MapScreen> {
      * Listen change user local position (this)
      */
     final _keyFromFileTemp = await SqfliteProvider.data;
-    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-    print(_keyFromFileTemp.toString());
-    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 
-    _streamSubscriptionCurrentLocation = _location.onLocationChanged.listen((LocationData _locationData) {
+    _streamSubscriptionCurrentLocation =
+        _location.onLocationChanged.listen((LocationData _locationData) {
       if (_googleMapController != null) {
         _googleMapController.setMapStyle(MyMapStyle);
         _locData = _locationData;
@@ -177,7 +180,6 @@ class _MapScreen extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     _locationCenter();
-    setState(() {});
     /**
      *
      */
@@ -376,7 +378,10 @@ class _MapScreen extends State<MapScreen> {
           GoogleMap(
             onMapCreated: (controller) => _googleMapController = controller,
             initialCameraPosition: CameraPosition(
-              target: LatLng(32.4081212, -116.940533),
+              target: LatLng(
+                32.4081212,
+                -116.940533,
+              ),
               zoom: 18,
             ),
             myLocationEnabled: true,
@@ -386,8 +391,10 @@ class _MapScreen extends State<MapScreen> {
             markers: _userPositionList
                 .map((UserPosition userPosition) => Marker(
                       markerId: MarkerId(userPosition.id),
-                      position: LatLng(userPosition.position.latitude,
-                          userPosition.position.longitude),
+                      position: LatLng(
+                        userPosition.position.latitude,
+                        userPosition.position.longitude,
+                      ),
                       onTap: () => print(userPosition.id),
                     ))
                 .toSet(),

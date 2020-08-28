@@ -1,6 +1,9 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:rapigo/database/model/user_model.dart';
 import 'package:rapigo/database/sqflite_provider.dart';
+import 'package:rapigo/other/colors_style.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -120,7 +123,6 @@ class _LoginScreen extends State<LoginScreen> {
   // ===========================================================================
 
   bool _showPwd = true;
-  final double _padding = 20;
 
   /*
    * Toggle show password
@@ -135,115 +137,100 @@ class _LoginScreen extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-//              Image(
-//                image: AssetImage('assets/images/bg.jpg'),
-//                width: double.infinity,
-//                height: double.infinity,
-//                fit: BoxFit.cover,
-//              ),
-        Scaffold(
-          floatingActionButton: MaterialButton(
-            minWidth: double.minPositive,
-            elevation: 0,
-            child: Icon(
-              Icons.help_outline,
-              color: Colors.black54,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(100),
-            ),
-            onPressed: () => _help(context),
-          ),
-          backgroundColor: Colors.transparent,
-          body: Container(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                colors: [Colors.blueAccent, Colors.blue],
-                radius: 0.75,
+    return Scaffold(
+      floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colores.Primary,
+        elevation: 0,
+        child: Icon(
+          Icons.help_outline,
+          color: Colors.white30,
+        ),
+        onPressed: () => _help(context),
+      ),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        color: Colores.Primary,
+        alignment: Alignment.center,
+        width: double.infinity,
+        height: double.infinity,
+        padding: EdgeInsets.all(30),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Image(
+                image: AssetImage('assets/images/logo.png'),
+                width: 200,
+                height: 200,
               ),
-            ),
-            alignment: Alignment.center,
-            width: double.infinity,
-            height: double.infinity,
-            padding: EdgeInsets.all(30),
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  Image(
-                    image: AssetImage('assets/images/logo.jpg'),
-                    width: 200,
-                    height: 200,
+              Padding(
+                padding: EdgeInsets.fromLTRB(20, 10, 20, 10),
+                child: TextField(
+                  enableInteractiveSelection: false,
+                  controller: _username,
+                  style: TextStyle(fontSize: 20),
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(
+                        Radius.circular(15.0),
+                      ),
+                    ),
+                    fillColor: Colors.white,
+                    filled: true,
+                    hintStyle: TextStyle(color: Colors.grey, fontSize: 20),
+                    hintText: "Username",
+                    suffixIcon: Icon(Icons.person_outline),
                   ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(_padding, 10, _padding, 10),
-                    child: TextField(
-                      enableInteractiveSelection: false,
-                      controller: _username,
-                      decoration: InputDecoration(
-                        labelStyle: TextStyle(color: Colors.black),
-                        labelText: "Username",
-                        suffixIcon: Icon(Icons.person_outline),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(20, 10, 20, 10),
+                child: TextField(
+                  enableInteractiveSelection: false,
+                  controller: _password,
+                  obscureText: _showPwd,
+                  style: TextStyle(fontSize: 20),
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(
+                        Radius.circular(15.0),
+                      ),
+                    ),
+                    fillColor: Colors.white,
+                    filled: true,
+                    hintStyle: TextStyle(color: Colors.grey, fontSize: 20),
+                    hintText: "Password",
+                    suffixIcon: IconButton(
+                      icon: Icon((_showPwd) ? Icons.lock : Icons.lock_open),
+                      onPressed: showPwd,
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.all(20),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: MaterialButton(
+                    height: 50,
+                    elevation: 0,
+                    color: Colors.blue,
+                    minWidth: double.infinity,
+                    onPressed: () => _validateUser(context),
+                    child: Text(
+                      "INGRESAR",
+                      style: TextStyle(
+                        fontSize: 20,
+                        color: Colors.white,
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(_padding, 10, _padding, 10),
-                    child: TextField(
-                      enableInteractiveSelection: false,
-                      controller: _password,
-                      obscureText: _showPwd,
-                      decoration: InputDecoration(
-                        labelText: "Password",
-                        labelStyle: TextStyle(color: Colors.black),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            (_showPwd) ? Icons.lock : Icons.lock_open,
-                          ),
-                          onPressed: showPwd,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.all(_padding),
-                    child: MaterialButton(
-                      height: 50,
-                      elevation: 0,
-                      color: Colors.red,
-                      minWidth: double.infinity,
-                      onPressed: () => _validateUser(context),
-                      child: Text("Ingresar", style: TextStyle(fontSize: 20),),
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      _padding,
-                      0,
-                      _padding,
-                      0,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-//                              MaterialButton(
-//                                child: Text("Registrarme"),
-//                                onPressed: () {},
-//                              ),
-//                              MaterialButton(
-//                                child: Text("Olvide mi contraseña"),
-//                                onPressed: () {},
-//                              ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        )
-      ],
+        ),
+      ),
     );
   }
 }
