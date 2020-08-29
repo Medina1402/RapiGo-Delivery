@@ -1,9 +1,9 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:rapigo/database/model/user_model.dart';
 import 'package:rapigo/database/sqflite_provider.dart';
 import 'package:rapigo/other/colors_style.dart';
+import 'package:rapigo/widget/inputDecorationLogin_widget.dart';
+import 'package:rapigo/widget/nofound_widget.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -34,33 +34,18 @@ class _LoginScreen extends State<LoginScreen> {
    *
    */
   _help(BuildContext context) async {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text("Ayuda"),
-          content: Container(
-            height: 120,
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.help,
-                      color: Colors.orange,
-                    ),
-                    Text("  Cualquier duda o aclaracion"),
-                  ],
-                ),
-                Text("\n\nabraham.medina.carrillo@uabc.edu.mx"),
-              ],
-            ),
-          ),
-          elevation: 24,
-          backgroundColor: Colors.white,
-        );
-      },
-      barrierDismissible: true,
+    errorWindow(
+      context,
+      "",
+      Container(
+          height: 120,
+          child: Column(children: [
+            Row(children: [
+              Icon(Icons.help, color: Colors.orange),
+              Text("  Cualquier duda o aclaracion")
+            ]),
+            Text("\n\nabraham.medina.carrillo@uabc.edu.mx")
+          ])),
     );
   }
 
@@ -71,35 +56,10 @@ class _LoginScreen extends State<LoginScreen> {
     await SqfliteProvider.delete(key);
     await SqfliteProvider.insert(UserRapigoDB(key, _username.text, 0, 0));
 
+    Navigator.pushReplacementNamed(context, "/map");
+
     _username.clear();
     _password.clear();
-    Navigator.pushReplacementNamed(context, "/map");
-  }
-
-  /*
-   *
-   */
-  _notFound(BuildContext context, String message) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text("¡Error de registro!"),
-          content: Row(
-            children: [
-              Icon(
-                Icons.error_outline,
-                color: Colors.orange,
-              ),
-              Text(message),
-            ],
-          ),
-          elevation: 24,
-          backgroundColor: Colors.white,
-        );
-      },
-      barrierDismissible: true,
-    );
   }
 
   /*
@@ -107,7 +67,7 @@ class _LoginScreen extends State<LoginScreen> {
    */
   _validateUser(BuildContext context) async {
     if (_username.text.length <= 0 || _password.text.length <= 0) {
-      _notFound(context, "  Debes llenar todos los datos");
+      errorWindow(context, "  Debes llenar todos los datos", null);
       return null;
     }
 
@@ -117,11 +77,10 @@ class _LoginScreen extends State<LoginScreen> {
       return null;
     }
 
-    _notFound(context, "  Usuario no encontrado");
+    errorWindow(context, "  Usuario no encontrado", null);
   }
 
   // ===========================================================================
-
   bool _showPwd = true;
 
   /*
@@ -169,17 +128,9 @@ class _LoginScreen extends State<LoginScreen> {
                   enableInteractiveSelection: false,
                   controller: _username,
                   style: TextStyle(fontSize: 20),
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(
-                        Radius.circular(15.0),
-                      ),
-                    ),
-                    fillColor: Colors.white,
-                    filled: true,
-                    hintStyle: TextStyle(color: Colors.grey, fontSize: 20),
-                    hintText: "Username",
-                    suffixIcon: Icon(Icons.person_outline),
+                  decoration: inputDecorationLogin(
+                    "Username",
+                    Icon(Icons.person_outline),
                   ),
                 ),
               ),
@@ -190,17 +141,9 @@ class _LoginScreen extends State<LoginScreen> {
                   controller: _password,
                   obscureText: _showPwd,
                   style: TextStyle(fontSize: 20),
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(
-                        Radius.circular(15.0),
-                      ),
-                    ),
-                    fillColor: Colors.white,
-                    filled: true,
-                    hintStyle: TextStyle(color: Colors.grey, fontSize: 20),
-                    hintText: "Password",
-                    suffixIcon: IconButton(
+                  decoration: inputDecorationLogin(
+                    "Password",
+                    IconButton(
                       icon: Icon((_showPwd) ? Icons.lock : Icons.lock_open),
                       onPressed: showPwd,
                     ),
