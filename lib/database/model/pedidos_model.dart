@@ -7,7 +7,12 @@ class Pedido {
   bool disponible;
   bool entregado;
   bool recogido;
-  Pedido(this.id, this.disponible, this.entregado, this.recogido);
+  Pedido({
+    this.id,
+    this.disponible,
+    this.entregado,
+    this.recogido,
+  });
 }
 
 
@@ -20,10 +25,10 @@ class PedidosModel {
 
     Collection.snapshots().listen((QuerySnapshot snapshot) {
       _pedidos = snapshot.docs.map((QueryDocumentSnapshot documentSnapshot) => Pedido(
-          documentSnapshot.data()["id"],
-          documentSnapshot.data()["disponible"],
-          documentSnapshot.data()["entregado"],
-          documentSnapshot.data()["recogido"]
+          id: documentSnapshot.data()["id"],
+          disponible: documentSnapshot.data()["disponible"],
+          entregado: documentSnapshot.data()["entregado"],
+          recogido: documentSnapshot.data()["recogido"]
       )).toList();
     });
 

@@ -4,13 +4,22 @@ import 'package:rapigo/database/firebase_provider.dart';
 class UserPosition {
   String id;
   GeoPoint position;
-  UserPosition(this.id, this.position);
+  bool visible;
+  String tipo;
+
+  UserPosition({
+    this.id,
+    this.position,
+    this.visible,
+    this.tipo,
+  });
 
   get json {
     return {
       "id": this.id,
       "position": this.position,
-      "visible": true
+      "visible": this.visible,
+      "tipo": this.tipo
     };
   }
 }
@@ -24,6 +33,8 @@ class UserPositionModel {
   }
 
   static void disconnect(String idDoc) async {
-    await Collection.doc(idDoc).delete();
+    await Collection.doc(idDoc).update({
+      "visible": false
+    });
   }
 }

@@ -5,8 +5,8 @@ import 'package:rapigo/app/router.dart';
 
 // ignore: must_be_immutable
 class Application extends StatelessWidget {
-  String _routeDefault;
-  Application(this._routeDefault);
+  String routeDefault;
+  Application({this.routeDefault});
 
   void afterBuild() async {
     await Firebase.initializeApp();
@@ -22,9 +22,10 @@ class Application extends StatelessWidget {
 
     return MaterialApp(
       title: "RapiGo Delivery",
+//      debugShowMaterialGrid: true,
       debugShowCheckedModeBanner: false,
       routes: Routes,
-      initialRoute: _routeDefault,
+      initialRoute: this.routeDefault,
     );
   }
 }
